@@ -1,14 +1,19 @@
-# App name
+# OpenZen
 
-[brief description of the app]
+Working in support, we'd found really helpful to have video sessions with customers where screen-sharing plays an important role. We could also offer a richer by enabling a recording based support (Record your problem, I'll record the solution)
 
-### The following information is displayed:
+### Use cases:
 
-* info1
-* info2
-* info3
+* See what customer sees(Screen-sharing)
+* One-to-one video chat with Enterprise customers
+* Have a multiple participants video chat with CSMs, CSAs
+* Allow users to record their problem for more effective troubleshooting
+* Allow support Engineers to record solution
 
-Please submit bug reports to [Insert Link](). Pull requests are welcome.
 
-### Screenshot(s):
-[put your screenshots down here.]
+### Creators
+* Phil Holcombe
+* Javier Molina Sanz
+* Svetlana Beliakova
+
+Date 14-15.11.2019 OneHackLondon2019
