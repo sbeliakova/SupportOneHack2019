@@ -10,6 +10,8 @@ Working in support, we'd found really helpful to have video sessions with custom
 * Allow users to record their problem for more effective troubleshooting
 * Allow support Engineers to record solution
 
+### Implementation
+Integration Opentok video API within a custom Zendesk App built in Ruby with a Docker server. Server is created using NodeJS framework. Javascript for the client side.
 
 ### Creators
 * Phil Holcombe
