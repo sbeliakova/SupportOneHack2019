@@ -1,24 +1,29 @@
-
-
 var session;
-var apiKey
+var apiKey;
+var sessionId;
+var token;
+var publisher;
+var ticket = document.getElementById('ticket')
+const button = document.getElementById('button')
+button.addEventListener('click', getValue ,false )
+
+
+function getValue(){
+var ticketNumber = ticket.value
+  initializeSession(ticketNumber)
+}
+
+
 function handleError(error) {
   if (error) {
     alert(error.message);
   }}
+ 
 
 
-  var SERVER_BASE_URL = 'https://tokboxpruebita.herokuapp.com';
-  //var SERVER_BASE_URL = 'http://localhost:8080';
-
-  //if (button) button.onclick = fetcher;
-
-    //function fetcher(e){
-    //e.preventDefault();
-  
-//}
-
-fetch(SERVER_BASE_URL + '/session').then(function(res) {
+function initializeSession(ticket) {
+  var SERVER_BASE_URL = 'http://localhost:8080';
+fetch(SERVER_BASE_URL + '/room/' + ticket).then(function(res) {
   return res.json()
 }).then(function(res) {
   apiKey = res.apiKey;
@@ -27,18 +32,17 @@ fetch(SERVER_BASE_URL + '/session').then(function(res) {
 
  // button.addEventListener('click', initializeSession(), true);
   //initializeSession()
+  giveMeVideo(ticket)
 }).catch(handleError);
+
+
+}
+
+
 
 // (optional) add server code here
     
-  
-function initializeSession() {
-
-  
-  
-
-  //buttons.style.display = "none";
- // buttons.style.display = "none";
+  function giveMeVideo(ticket){
   videos.style.display = "block";
   //videos.style.display = "block";
   var session = OT.initSession(apiKey, sessionId);
@@ -77,13 +81,12 @@ function unpublish() {
     session.unpublish(publisher);
   }
  
-}
+
 
  var publisher = OT.initPublisher('publisher', {
-    name: "Importanti ticket",
+    name: "Chat consultation for ticket " +ticket,
     style: { nameDisplayMode: "on" },
     insertMode: 'append',
-    publishVideo: true,
   // videoSource: 'screen',
     width: '100%',
     height: '100%'
@@ -116,11 +119,4 @@ function unpublish() {
           }
       
     });
-
-function apagar (){
-  console.log('Letting publisher unpublish if not...');
-if(publisher!=null){   
-   console.log("Unpublishing....");
-   publisher.publishVideo(false)
-
-}}
+  }
