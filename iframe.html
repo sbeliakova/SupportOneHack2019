@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+   
+  <link href="main.css" rel="stylesheet">
+</head>
+<body>
+
+  <style>
+
+.Vlt-btn--secondary,.Vlt-callout--shoutout .Vlt-callout__cta,.Vlt-dropdown__btn--secondary {
+    background: #3ae;
+    color: #fff
+}
+    .Vlt-btn,.Vlt-callout__cta,.Vlt-dropdown__btn,.Vlt-native-dropdown select {
+  -ms-flex-align: center;
+  align-items: center;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 0;
+  border-radius: 36px;
+  box-shadow: 0 1px 0 rgba(44,45,48,.15);
+  cursor: pointer;
+  display: inline-block;
+  font-size: 1.0rem;
+  font-weight: 600;
+  -ms-flex-pack: center;
+  justify-content: center;
+  line-height: 1.9rem;
+  margin: 8px 0;
+  min-height: 36px;
+  outline: 0;
+  padding: 8px 16px;
+  text-align: center;
+  transition: transform .1s,background .1s;
+  vertical-align: middle;
+  white-space: nowrap
+}
+
+.Vlt-btn--tertiary,.Vlt-callout--tip .Vlt-callout__cta,.Vlt-composite__append .Vlt-btn,.Vlt-composite__append .Vlt-dropdown__btn,.Vlt-composite__append .Vlt-native-dropdown select,.Vlt-composite__prepend .Vlt-btn,.Vlt-composite__prepend .Vlt-dropdown__btn,.Vlt-composite__prepend .Vlt-native-dropdown select,.Vlt-dropdown__btn:not(.Vlt-dropdown__btn--primary):not(.Vlt-dropdown__btn--secondary):not(.Vlt-dropdown__btn--tertiary):not(.Vlt-dropdown__btn--quaternary):not(.Vlt-dropdown__btn--destructive),.Vlt-native-dropdown select {
+    background: #f8fafc;
+    box-shadow: inset 0 0 0 1px #c4cdd5,0 1px 0 rgba(44,45,48,.15);
+    color: #2c2d30;
+    font-weight: 400
+}
+.Vlt-btn--small,.Vlt-btn-group--small .Vlt-btn,.Vlt-callout--banner .Vlt-btn,.Vlt-callout--banner .Vlt-callout__cta,.Vlt-dropdown__btn--small,.Vlt-table .Vlt-btn {
+    line-height: 1.5rem;
+    min-height: 30px;
+    padding: 7px 14px
+}
+ </style>
+  
+
+  <div id="content"></div>
+
+  <button id="startPublishingVideoId" class="Vlt-btn Vlt-btn--small Vlt-btn--secondary" onclick="startPublishingVideo()">video</button>
+  <button id="startPublishingScreenId" class="Vlt-btn Vlt-btn--small Vlt-btn--secondary" onclick="startPublishingScreen()">screen</button>
+  <button id="stopPublishingId" class="Vlt-btn Vlt-btn--small Vlt-btn--secondary" onclick="stopPublishing()">stop</button>
+  <div id="videos" >
+      
+                <div id="publisher" ></div>
+                <div id="subscriber" ></div>
+ 
+    </div>
+    <button id="startRecordingId" class="Vlt-btn Vlt-btn--small Vlt-btn--secondary" onclick="startRecording()">Rec</button>
+    <button id="stopRecordingId" class="Vlt-btn Vlt-btn--small Vlt-btn--secondary"  onclick="stopRecording()">Stop Rec</button>
+
+ 
+  <script id="requester-template" type="text/x-handlebars-template">
+
+  </script>
+
+  <script id="error-template" type="text/x-handlebars-template">
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/handlebars@4.3.3/dist/handlebars.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.4.1/dist/jquery.min.js"></script>
+  <script src="https://static.zdassets.com/zendesk_app_framework_sdk/2.0/zaf_sdk.min.js"></script>
+  <script src="https://static.opentok.com/v2/js/opentok.min.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
