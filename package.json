@@ -1,19 +1,22 @@
 {
-  "name": "tokboxint",
-  "version": "1.0.0",
-  "description": "",
+  "name": "opentok-support-tool",
+  "version": "0.0.0",
+  "description": "Demo of OpenTok API",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.19.0",
-    "ejs": "^2.7.1",
-    "express": "^4.17.1",
-    "nodemon": "^1.19.4",
-    "opentok": "^2.9.1"
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "ejs": "^2.6.1",
+    "express": "^3.5.0",
+    "nexmo": "^2.5.1",
+    "opentok": "^2.9.1",
+    "request": "^2.88.0",
+    "zendesk-node-api": "^1.3.0"
   }
 }
