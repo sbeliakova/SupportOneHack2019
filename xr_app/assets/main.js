@@ -1,75 +1,4 @@
-$(function() {
-  var client = ZAFClient.init();
-  client.invoke('resize', { width: '100%', height: '79vh'  });
-
-  client.get('ticket.requester.id').then(
-    function(data) {
-      var user_id = data['ticket.requester.id'];
-      requestUserInfo(client, user_id);
-    }
-  );
-
-});
-
-
-function requestUserInfo(client, id) {
-  var settings = {
-    url: '/api/v2/users/' + id + '.json',
-    type:'GET',
-    dataType: 'json',
-  };
-
-  client.request(settings).then(
-    function(data) {
-      showInfo(data);
-    },
-    function(response) {
-      showError(response);
-    }
-  );
-}
-
-
-function showInfo(data) {
-  var requester_data = {
-    'name': data.user.name,
-    'tags': data.user.tags,
-    'created_at': formatDate(data.user.created_at),
-    'last_login_at': formatDate(data.user.last_login_at)
-  };
-
-  var source = $("#requester-template").html();
-  var template = Handlebars.compile(source);
-  var html = template(requester_data);
-  $("#content").html(html);
-}
-
-
-function showError(response) {
-  var error_data = {
-    'status': response.status,
-    'statusText': response.statusText
-  };
-  var source = $("#error-template").html();
-  var template = Handlebars.compile(source);
-  var html = template(error_data);
-  $("#content").html(html);
-}
-
-
-function formatDate(date) {
-  var cdate = new Date(date);
-  var options = {
-    year: "numeric",
-    month: "short",
-    day: "numeric"
-  };
-  date = cdate.toLocaleDateString("en-us", options);
-  return date;
-}
-
-
-var SERVER_BASE_URL = 'http://930eee5f.ngrok.io';
+ var SERVER_BASE_URL = 'https://dbfc42628b4f.ngrok.io';
 var apiKey;
 var sessionId;
 var publisher;
@@ -78,6 +7,36 @@ var token;
 var publishing = false;
 var archiveId;
 
+
+$(function() {
+  var client = ZAFClient.init();
+  client.invoke('resize', { width: '100%', height: '79vh'  });
+  videos.style.display = 'none';
+ 
+
+  client.get(['ticket.id', 'ticket.requester.id']).then(
+    function(data) {
+      var user_id = data['ticket.requester.id']
+      var  ticket_id = data['ticket.id'];
+
+  fetch(SERVER_BASE_URL + '/room/' + user_id + "-" + ticket_id).then(function(res) {
+
+ 
+// fetch(SERVER_BASE_URL + '/session').then(function(res) {
+  return res.json()
+}).then(function(res) {
+  apiKey = res.apiKey;
+  sessionId = res.sessionId;
+  token = res.token;
+ // button.addEventListener('click', initializeSession(), true);
+   initializeSession();
+}).catch(handleError);
+
+      //requestUserInfo(client, user_id);
+    }
+  );
+
+});
 
 
 function setPublishing( type) {
@@ -136,17 +95,9 @@ function setRecording( on ) {
 
 setPublishing( false );
 
+
   
-fetch(SERVER_BASE_URL + '/room/' + '17063148267-784').then(function(res) {
-// fetch(SERVER_BASE_URL + '/session').then(function(res) {
-  return res.json()
-}).then(function(res) {
-  apiKey = res.apiKey;
-  sessionId = res.sessionId;
-  token = res.token;
- // button.addEventListener('click', initializeSession(), true);
-   initializeSession();
-}).catch(handleError);
+
 
 function handleError(error) {
   if (error) {
@@ -207,9 +158,16 @@ function startPublishingVideo() {
   publisher.publishVideo(true);
 if( publisher.stream.videoType != 'camera') {
   
-    publisher.cycleVideo();
+    //publisher.cycleVideo();
+    session.unpublish(publisher)
+     publisher = OT.initPublisher('publisher', {
+    insertMode: 'replace',
+    // videoSource : 'screen'
+  })
+     setPublishing('camera');
 
   }
+
 
   console.log("publishing camera");
   setPublishing('camera');
@@ -223,7 +181,8 @@ function startPublishingScreen() {
     } else {
       // Screen sharing is available. Publish the screen.
       publisher = OT.initPublisher('publisher',
-        {videoSource: 'screen'},
+        {videoSource: 'screen',
+        insertMode: 'replace'},
         function(error) {
           if (error) {
             // Look at error.message to see what went wrong.
@@ -267,10 +226,10 @@ function initializeSession() {
 
   // Create a publisher
   publisher = OT.initPublisher('publisher', {
-    insertMode: 'append',
-    publishVideo: false,
-    publishAudio: false
-    // videoSource : 'screen'
+    insertMode: 'replace',
+   // publishVideo: false,
+    //publishAudio: false
+     videoSource : null
   }, handleError);
 
   // Connect to the session
