@@ -6,7 +6,8 @@ var session;
 var token;
 var publishing = false;
 var archiveId;
-
+var screenSharing = false;
+var archiving = false;
 
 $(function() {
   var client = ZAFClient.init();
@@ -45,7 +46,7 @@ function setPublishing( type) {
   var startScreenButton = document.getElementById("startPublishingScreenId");
   var startRecordingButton = document.getElementById('startRecordingId');
   var stopRecordingButton = document.getElementById('stopRecordingId');
-  if( type == 'screen' ) {
+  /*if( type == 'screen' ) {
     stopButton.disabled = false;
     startVideoButton.disabled = false;
     startScreenButton.disabled = true;
@@ -71,32 +72,16 @@ function setPublishing( type) {
     stopRecordingButton.disabled=true;
 
   }
+  */
 }
 
 function startRecording() {
-  startArchive();
-  setRecording( true );
+  archiving ? stopArchive() : startArchive();
+  //setRecording( true );
 }
 
-function stopRecording() {
-  stopArchive();
-  setRecording( false );
-}
-
-function setRecording( on ) {
-  var startRecordingButton = document.getElementById('startRecordingId');
-  var stopRecordingButton = document.getElementById('stopRecordingId');
-
-  
-    startRecordingButton.disabled=on;
-    stopRecordingButton.disabled=!on;
-  
-}
 
 setPublishing( false );
-
-
-  
 
 
 function handleError(error) {
@@ -126,6 +111,8 @@ function startArchive() {
   })
   .catch(error => console.log('errror starting archive', error))
 }
+
+
 function stopArchive() {
   //
   console.log('stop')
@@ -160,10 +147,7 @@ if( publisher.stream.videoType != 'camera') {
   
     //publisher.cycleVideo();
     session.unpublish(publisher)
-     publisher = OT.initPublisher('publisher', {
-    insertMode: 'replace',
-    // videoSource : 'screen'
-  })
+     publisher = OT.initPublisher('publisher')
      setPublishing('camera');
 
   }
@@ -172,7 +156,15 @@ if( publisher.stream.videoType != 'camera') {
   console.log("publishing camera");
   setPublishing('camera');
 }
+
+
+//check the screen div
+
 function startPublishingScreen() {
+  if (screenSharing === true){
+         session.unpublish(screenPublisher)
+       }
+       else{
   OT.checkScreenSharingCapability(function(response) {
     if(!response.supported || response.extensionRegistered === false) {
       // This browser does not support screen sharing.
@@ -180,28 +172,41 @@ function startPublishingScreen() {
       // Prompt to install the extension.
     } else {
       // Screen sharing is available. Publish the screen.
-      publisher = OT.initPublisher('publisher',
-        {videoSource: 'screen',
-        insertMode: 'replace'},
+      screenPublisher = OT.initPublisher('screena',
+        {videoSource: 'screen'},
         function(error) {
           if (error) {
             // Look at error.message to see what went wrong.
           } else {
-            session.publish(publisher, function(error) {
+            session.publish(screenPublisher, function(error) {
               if (error) {
                 // Look error.message to see what went wrong.
               }
+            })
+            .on("streamCreated", function(event) {  
+              console.log("Publisher started streaming. " + event.stream.videoType)
+                if (event.stream.videoType === 'screen'){
+                  screenSharing = true;
+                  document.getElementById("startPublishingScreenId").innerHTML = 'stop screenShare'
+                }
+              })
+              .on("streamDestroyed", function(event) {
+               if (event.stream.videoType === 'screen'){screenSharing = false
+              document.getElementById("startPublishingScreenId").innerHTML = 'start screenShare'}
+              console.log("Publisher stopped streaming.");
             });
           }
         }
       );
     }
-  });
+  })
+};
 
 
 console.log("publishing screen");
   setPublishing('screen');
 }
+
 
 
 
@@ -220,6 +225,8 @@ function initializeSession() {
 
   session.on('archiveStarted', function (event) {
     archiveID = event.id;
+    archiving = true
+    document.getElementById('startRecordingId').innerHTML = 'Stop Archive';
     console.log('ARCHIVE STARTED' + archiveID);
   });  
 
