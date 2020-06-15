@@ -1,4 +1,4 @@
- var SERVER_BASE_URL = 'https://dbfc42628b4f.ngrok.io';
+ var SERVER_BASE_URL = 'https://23ef75fcb34e.ngrok.io';
 var apiKey;
 var sessionId;
 var publisher;
@@ -8,6 +8,7 @@ var publishing = false;
 var archiveId;
 var screenSharing = false;
 var archiving = false;
+var video = false;
 
 $(function() {
   var client = ZAFClient.init();
@@ -23,57 +24,20 @@ $(function() {
   fetch(SERVER_BASE_URL + '/room/' + user_id + "-" + ticket_id).then(function(res) {
 
  
-// fetch(SERVER_BASE_URL + '/session').then(function(res) {
   return res.json()
 }).then(function(res) {
   apiKey = res.apiKey;
   sessionId = res.sessionId;
   token = res.token;
- // button.addEventListener('click', initializeSession(), true);
-   initializeSession();
+
+   //initializeSession();
 }).catch(handleError);
 
-      //requestUserInfo(client, user_id);
     }
   );
 
 });
 
-
-function setPublishing( type) {
-  var stopButton = document.getElementById("stopPublishingId");  
-  var startVideoButton = document.getElementById("startPublishingVideoId");
-  var startScreenButton = document.getElementById("startPublishingScreenId");
-  var startRecordingButton = document.getElementById('startRecordingId');
-  var stopRecordingButton = document.getElementById('stopRecordingId');
-  /*if( type == 'screen' ) {
-    stopButton.disabled = false;
-    startVideoButton.disabled = false;
-    startScreenButton.disabled = true;
-
-    startRecordingButton.disabled=false;
-    stopRecordingButton.disabled=true;
-
-
-  } else if( type == 'camera') {
-    stopButton.disabled = false;
-    startVideoButton.disabled = true;
-    startScreenButton.disabled = false;
-
-    startRecordingButton.disabled=false;
-    stopRecordingButton.disabled=true;
-        
-  } else {
-    stopButton.disabled = true;
-    startVideoButton.disabled = false;
-    startScreenButton.disabled = false;
-
-    startRecordingButton.disabled=true;
-    stopRecordingButton.disabled=true;
-
-  }
-  */
-}
 
 function startRecording() {
   archiving ? stopArchive() : startArchive();
@@ -81,7 +45,7 @@ function startRecording() {
 }
 
 
-setPublishing( false );
+//setPublishing( false );
 
 
 function handleError(error) {
@@ -132,29 +96,10 @@ function stopArchive() {
   .catch(error => console.log('errror stopping archive', error))
 }
 
-function stopPublishing() {
-  publisher.publishAudio(false);
-  publisher.publishVideo(false);
-  console.log("Unpublishing");
-  setPublishing(false);
-
-}
-
 function startPublishingVideo() {
-  publisher.publishAudio(true);
-  publisher.publishVideo(true);
-if( publisher.stream.videoType != 'camera') {
-  
-    //publisher.cycleVideo();
-    session.unpublish(publisher)
-     publisher = OT.initPublisher('publisher')
-     setPublishing('camera');
 
-  }
+  video ? publisher.publishVideo(false) : publisher.publishVideo(true)
 
-
-  console.log("publishing camera");
-  setPublishing('camera');
 }
 
 
@@ -168,9 +113,8 @@ function startPublishingScreen() {
   OT.checkScreenSharingCapability(function(response) {
     if(!response.supported || response.extensionRegistered === false) {
       // This browser does not support screen sharing.
-    } else if (response.extensionInstalled === false) {
-      // Prompt to install the extension.
-    } else {
+    } 
+     else {
       // Screen sharing is available. Publish the screen.
       screenPublisher = OT.initPublisher('screena',
         {videoSource: 'screen'},
@@ -204,8 +148,8 @@ function startPublishingScreen() {
 
 
 console.log("publishing screen");
-  setPublishing('screen');
 }
+
 
 
 
@@ -217,11 +161,7 @@ function initializeSession() {
    session = OT.initSession(apiKey, sessionId);
 
   // Subscribe to a newly created stream once we're publishing
-  session.on('streamCreated', function(event) {
-    session.subscribe(event.stream, 'subscriber', {
-      insertMode: 'append'
-    }, handleError);
-  });
+
 
   session.on('archiveStarted', function (event) {
     archiveID = event.id;
@@ -230,13 +170,38 @@ function initializeSession() {
     console.log('ARCHIVE STARTED' + archiveID);
   });  
 
+   session.on('archiveStopped', function (event) {
+    archiveID = event.id;
+    archiving = false
+    document.getElementById('startRecordingId').innerHTML = 'Start Archive';
+    console.log('ARCHIVE STOPED' + archiveID);
+  });  
+
+  session.on("streamPropertyChanged", function(event) {
+              console.log(event.newValue)
+             video = event.newValue
+             video ? document.getElementById("startPublishingVideoId").innerHTML = 'Turn Video off' : document.getElementById("startPublishingVideoId").innerHTML = 'Turn Video on';
+            });
+
+  session.on('streamCreated', function(event) {
+    console.log('stream created' + event.stream)
+    //if (event.stream.hasVideo === 'true'){
+      //document.getElementById("startPublishingVideoId").style.display = "none"
+               //event.stream.hasVideo ?  video = true : video = false
+    //document.getElementById("startPublishingScreenId").innerHTML = 'stop screenShare'
+              //  }
+    session.subscribe(event.stream, 'subscriber', {
+      insertMode: 'append',
+
+    }, handleError);
+  });
 
   // Create a publisher
   publisher = OT.initPublisher('publisher', {
     insertMode: 'replace',
-   // publishVideo: false,
+    publishVideo: false,
     //publishAudio: false
-     videoSource : null
+     //videoSource : null
   }, handleError);
 
   // Connect to the session
@@ -245,7 +210,9 @@ function initializeSession() {
     if (error) {
       handleError(error);
     } else {
-    session.publish(publisher);
+    session.publish(publisher)
+    document.getElementById("initiatesession").style.display = "none"
+     
     }
   });
 }
