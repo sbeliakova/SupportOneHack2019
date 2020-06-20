@@ -1,49 +1,32 @@
 /* eslint-disable no-console, no-path-concat */
-
-var opentok;
-var sessionId
-var bodyParser = require('body-parser')
-var express = require('express');
-var router = express.Router();
-var path = require('path');
-var app = express();
-var _ = require('lodash');
-var Nexmo = require('nexmo')
-var request = require ('request')
-var Zendesk = require('zendesk-node-api');
-var ejs = require('ejs')
-var cors = require('cors');
+let sessionId
+const fs = require('fs');
+const bodyParser = require('body-parser')
+const express = require('express');
+const router = express.Router();
+const path = require('path');
+const app = express();
+const _ = require('lodash');
+const Nexmo = require('nexmo')
+const request = require ('request')
+const Zendesk = require('zendesk-node-api');
+const ZD = require('node-zendesk');
+const ejs = require('ejs')
+const cors = require('cors');
 const dotenv = require('dotenv')
 dotenv.config();
+let apiKey = process.env.apiKey
+let  apiSecret = process.env.apiSecret
+const AWS = require('aws-sdk');
 
-var zendesk = new Zendesk({
-  url: 'process.env.ZD_Url', // https://example.zendesk.com
-  email: "process.env.ZD_email", // me@example.com
-  token: "process.env.ZD_token" // hfkUny3vgHCcV3UfuqMFZWDrLKms4z3W2f6ftjPT
+const client = ZD.createClient({
+  username:  process.env.username,
+  token:     process.env.token,
+  remoteUri: process.env.remoteUri
 });
-var apiKey = process.env.TB_apiKey;
-var apiSecret = process.env.TB_apiSecret;
 
-if (!apiKey || !secret) {
-  console.error('=========================================================================================================');
-  console.error('');
-  console.error('Missing TOKBOX_API_KEY or TOKBOX_SECRET');
-  console.error('Find the appropriate values for these by logging into your TokBox Dashboard at: https://tokbox.com/account/#/');
-  console.error('Then add them to ', path.resolve('.env'), 'or as environment variables' );
-  console.error('');
-  console.error('=========================================================================================================');
-  process.exit();
-}
-
-var OpenTok = require('opentok');
-var opentok = new OpenTok(apiKey, secret);
-const nexmo = new Nexmo({
-    apiKey: process.env.Nexmo_apiKey,
-    apiSecret: process.env.Nexmo_apiSecret
-    
-  }, {debug:false})
-
-// Verify that the API Key and API Secret are defined
+const OpenTok = require('opentok');
+const opentok = new OpenTok(apiKey, apiSecret);
 
 app.set('view engine', 'html');
 app.engine('html', ejs.renderFile);
@@ -55,18 +38,17 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 
+let ticketId
+
 // Starts the express app
-function init() {
+let init = () => {
   app.listen(8080, function () {
     console.log('You\'re app is now ready at http://localhost:8080/');
   });
 }
 
-// Initialize OpenTok
-
-
 // Create a session and store it in the express app
-opentok.createSession({ mediaMode: 'routed' }, function (err, session) {
+opentok.createSession({ mediaMode: 'routed' },  (err, session) => {
   if (err) throw err;
   app.set('sessionId', session.sessionId);
   app.set('layout', 'horizontalPresentation');
@@ -74,139 +56,105 @@ opentok.createSession({ mediaMode: 'routed' }, function (err, session) {
   init();
 });
 
-app.get('/', function (req, res) {
+app.get('/',  (req, res) => {
   res.render('index.html');
 });
-
-
 
 // IMPORTANT: roomToSessionIdDictionary is a variable that associates room names with unique
 // unique sesssion IDs. However, since this is stored in memory, restarting your server will
 // reset these values if you want to have a room-to-session association in your production
 // application you should consider a more persistent storage
 
-var roomToSessionIdDictionary = {};
+ let roomToSessionIdDictionary = {};
 
 // returns the room name, given a session ID that was associated with it
-function findRoomFromSessionId(sessionId) {
-  return _.findKey(roomToSessionIdDictionary, function (value) { return value === sessionId; });
+let findRoomFromSessionId = sessionId => {
+  return _.findKey(roomToSessionIdDictionary,  value => { return value === sessionId; });
 }
 
-/**
- * GET /session redirects to /room/session
- */
-app.get('/session', function (req, res) {
-  res.redirect('/room/session');
-});
-
-
-
-/**
- * GET /room/:name
- */
-app.get('/room/:name', function (req, res) {
-  var roomName = req.params.name;
-  var sessionId;
-  var token;
+app.get ('/room/:name', (req , res)=> {
+  if(!req.params.name){res.status(402).end()}
+  let roomName = req.params.name;
+  let sessionId;
+  let token;
   console.log('attempting to create a session associated with the room: ' + roomName);
-  console.log(roomToSessionIdDictionary);
-
-
-// find if the request is valid by checking ticket ID and request ID
 
   let requesterId = roomName.split("-")[0]
-  let ticketId = roomName.split("-")[1]
-  console.log(requesterId, ticketId)
-  var options = { method: 'GET',
-  url: 'https://nexmo1443765028.zendesk.com/api/v2/tickets/' + ticketId,
-  headers: 
-   { Accept: 'application/json',
-   Authorization: 'Basic amF2aWVyLm1vbGluYXNhbnpAdm9uYWdlLmNvbTpHaXRhbnV6YTEyMzQ1Njc5QA==' } };
+   ticketId = roomName.split("-")[1]
 
-request(options, function (error, response, body) {
-  if (error) {console.log(error)};
+  checkIfValid(ticketId, req).then(response =>{
 
-  let jsonParsed = JSON.parse(body)
-  let assignee_id = jsonParsed.ticket.assignee_id
-  console.log('Requester ID and ticket are ', jsonParsed.ticket.requester_id, jsonParsed.ticket.id )
+    //res.send('heel')
+    //console.log(res)
+   
+    //if (response.requester_id == requesterId && req.referer.split("/")[3] === "hc"){
+//&& req.headers.origin ==='https://nexmo1443765028.zendesk.com'
+    //console.log(req.headers)
+      //if (response.requester_id && response.requester_id.toString() === requesterId ){
+    if (response && response.toString() === requesterId ){
 
-// Checking that the user is a customer and that they ticket was created by them
-
-            if (jsonParsed.ticket.requester_id == requesterId){
-              
-              var notification  = 'Someone would like to talk to you. Please join https://49dacf8d.ngrok.io with the code ' + roomName
-              console.log(notification)
-
-                zendesk.tickets.update(jsonParsed.ticket.id, {
-                     comment:{"body": notification, "public": false}
-                     
-                  }).then(function(result){
-                    console.log(result);
-                  });
-
-                  //Getting phone number of the assignee to be notifed
-
-              zendesk.users.show(assignee_id.toString()).then(function(result){
-                let number = result.phone;
-                console.log(result.phone);
-                //sending message to the asignee to 
-                sendMessage(number, notification)
-            })
-                
-
-
-            }
-            else{console.log('Unauthorised')}
-
-
-});
-
-
+      if (req.headers.referer.split("/")[3] === "hc"){ updateTicket(ticketId)}
+     
   // if the room name is associated with a session ID, fetch that
-  if (roomToSessionIdDictionary[roomName]) {
-    sessionId = roomToSessionIdDictionary[roomName];
+      if (roomToSessionIdDictionary[roomName]) {
+        sessionId = roomToSessionIdDictionary[roomName];
+        console.log('Someone requested to join ' + sessionId)
+        // generate token
+        token = opentok.generateToken(sessionId);
+        res.setHeader('Content-Type', 'application/json');
+        console.log(token)
+        res.send({
+          apiKey: apiKey,
+          sessionId: sessionId,
+          token: token
+        });
 
-    // generate token
-    token = opentok.generateToken(sessionId);
-    res.setHeader('Content-Type', 'application/json');
-    res.send({
-      apiKey: apiKey,
-      sessionId: sessionId,
-      token: token
-    });
-  }
-  // if this is the first time the room is being accessed, create a new session ID
-  else {
-    opentok.createSession({ mediaMode: 'routed' }, function (err, session) {
-      if (err) {
-        console.log(err);
-        res.status(500).send({ error: 'createSession error:' + err });
-        return;
       }
+  // if this is the first time the room is being accessed, create a new session ID
+      else {
+        opentok.createSession({ mediaMode: 'routed' },  (err, session) => {
+          if (err) {
+            console.log(err);
+            res.status(500).send({ error: 'createSession error:' + err });
+            return;
+          }
+          console.log(session.sessionId + ' has been created')
+          // now that the room name has a session associated wit it, store it in memory
+          // IMPORTANT: Because this is stored in memory, restarting your server will reset these values
+          // if you want to store a room-to-session association in your production application
+          // you should use a more persistent storage for them
+          roomToSessionIdDictionary[roomName] = session.sessionId;
 
-      // now that the room name has a session associated wit it, store it in memory
-      // IMPORTANT: Because this is stored in memory, restarting your server will reset these values
-      // if you want to store a room-to-session association in your production application
-      // you should use a more persistent storage for them
-      roomToSessionIdDictionary[roomName] = session.sessionId;
+          // generate token
+          token = opentok.generateToken(session.sessionId);
+          console.log(token)
+          res.setHeader('Content-Type', 'application/json');
+           res.send({
+            apiKey: apiKey,
+            sessionId: session.sessionId,
+            token: token
+          });
+        });
+      }
+//if abajo
+}
+//res.statys
+else{res.status(404).end()}
 
-      // generate token
-      token = opentok.generateToken(session.sessionId);
-      res.setHeader('Content-Type', 'application/json');
-      res.send({
-        apiKey: apiKey,
-        sessionId: session.sessionId,
-        token: token
-      });
-    });
-  }
-});
+})
+.catch((e) => {
+  //console.log(e)
+  res.status(404).end()
+})
 
 
-app.post('/archive/start', function (req, res) {
+
+})
+
+app.post('/archive/start',  (req, res) => {
   var json = req.body;
   var sessionId = json.sessionId;
-  opentok.startArchive(sessionId, { name: 'Important Presentation' }, function (err, archive) {
+  opentok.startArchive(sessionId, { name: 'Test' },  (err, archive) => {
     if (err) {
       console.error('error in startArchive');
       console.error(err);
@@ -218,7 +166,7 @@ app.post('/archive/start', function (req, res) {
   });
 });
 
-app.post('/archive/:archiveId/stop', function (req, res) {
+app.post('/archive/:archiveId/stop',  (req, res) => {
   var archiveId = req.params.archiveId;
   console.log('attempting to stop archive: ' + archiveId);
   opentok.stopArchive(archiveId, function (err, archive) {
@@ -233,43 +181,101 @@ app.post('/archive/:archiveId/stop', function (req, res) {
   });
 });
 
-app.get('/archive/:archiveId/view', function (req, res) {
-  var archiveId = req.params.archiveId;
-  console.log('attempting to view archive: ' + archiveId);
-  opentok.getArchive(archiveId, function (err, archive) {
-    if (err) {
-      console.error('error in getArchive');
-      console.error(err);
-      res.status(500).send({ error: 'getArchive error:' + err });
-      return;
-    }
-
-    if (archive.status === 'available') {
-      res.redirect(archive.url);
-    } else {
-      res.render('view', { title: 'Archiving Pending' });
-    }
-  });
-});
-
-app.post('/events', function (req, res){
-  console.log(req.body);
+app.post('/events',  (req, res) => {
   res.send('OK')
+  if(req.body.status === 'uploaded'){
+  console.log(req.body)
+  //req.body.
+  let archiveName = apiKey + "/" + req.body.id + "/archive.mp4"
+  //now I would need to do something like
+  //downloadFile(archiveName)
+  //Handler.downloadVideo(req.body.id + ".mp4", archiveName)
+  /*Handler.downloadVideo(req.body.id + ".mp4", archiveName).then(
+    
+    fs.readdirSync('/Users/jmolinasanz/Desktop/openhack/sample/Archiving').forEach(file => {
+      console.log(file);
+    }))
+    */
+    downloadVideo(req.body.id + ".mp4", archiveName, ticketId)
+}
 })
 
+let checkIfValid = (ticketId, res) => {
+  return new Promise(
+    (resolve, reject) => {
+      client.tickets.show(ticketId, function(err, request, result){
+        if (err) reject(err);
+          
+        //let content = result;
+        //let fact = content.requester_id;
+        resolve(result.requester_id);
 
+      })
+   }
+ );
+};
 
-function sendMessage(to, message) {
-	nexmo.message.sendSms('videosupport', to, message,
-		(err, responseData) => {
-			if (err) {
-				console.log(err);
-			} else {
-				console.dir(responseData.messages);
-			}
-		})
-}
   
+let updateTicket = (ticketId) => {
+    let notification  = 'The ticket requester would like to talk to you.'
+ client.tickets.update(ticketId, {"ticket":{comment:{"body": notification, "public": false}}}, (err, req, res) => {
+                     if(!err){console.log('Ticket updated')
+                      
+                   }}
+                 )}
 
+let downloadVideo = (archiveName, Key, ticketId) => {
 
+  var fileStream = fs.createWriteStream(archiveName);
+  s3 = new AWS.S3({apiVersion: '2020-06-11'});
+  var s3Stream = s3.getObject({Bucket: 'zendeskopentok', Key: Key}).createReadStream();
+
+  // Listen for errors returned by the service
+  s3Stream.on('error', function(err) {
+      // NoSuchKey: The specified key does not exist
+      console.error(err);
+  });
+
+  s3Stream.pipe(fileStream).on('error', function(err) {
+      // capture any errors that occur when writing data to the file
+      console.error('File Stream:', err);
+  }).on('close', function() {
+      console.log('Done.');
+      getToken(archiveName, ticketId)
+  });
+
+}
+
+let getToken = (archiveName, ticketId) => {
+  client.attachments.upload("/Users/jmolinasanz/Desktop/openhack/sample/Archiving/" + archiveName , {binary: false, filename: archiveName}, (err, req, result) => {
+    if (err) {
+      console.log("error:", err);
+      return;
+    }
+    console.log("token:", result.upload.token);
+    uploadVideo(result.upload.token, ticketId)
+    //console.log("req:", req);
+  })
+}
+
+let uploadVideo = (token, ticketId) =>{
+
+  var ticket = {
+  "ticket":
+    {
+      "comment": {
+        "body": "This is the recording of the call",
+        "public":true,
+        "uploads":[token]
+      },
+
+    }
+  };
+  client.tickets.update(ticketId,ticket, (err, req, res) => {
+    if(!err){
+      console.log(req)
+    }
+  })
+
+}
 
