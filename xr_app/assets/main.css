@@ -8,12 +8,24 @@ footer {
   padding-left: 6px;
 }
 
+.button {
+  background-color: #008CBA;;
+  border: none;
+  color: black;
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
 #content td {
 	font-size: 12px;
 	padding-top: 2px;
 }
 #videos {
-  display:block;
   position: absolute;
   width: 100%;
   height: 700px;
