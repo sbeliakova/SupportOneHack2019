@@ -25,16 +25,15 @@
 				</button>
 		</div>
     
-    <button id="stop-button" class="Vlt-btn Vlt-btn--link Vlt-btn--secondary tooltip" onclick="stopSession()" style="position:relative">Stop live session</button>
+    <button id="startPublishingVideoId" class="button" onclick="toggleVideo()" style="position:relative">Turn Video off</button>
     
-        <button id="start-arc-button" class="Vlt-btn Vlt-btn--link Vlt-btn--secondary  stop-btn tooltip" onclick="startArchive()" style="position:relative">Start video recording</button>
-
+    <button id="handleRecording" class="button" onclick="handleRecording()" style="position:relative">Start video recording</button>
     
-        <button id="stop-arc-button" class="Vlt-btn Vlt-btn--link Vlt-btn--secondary stop-btn tooltip" onclick="stopArchive()" style="position:relative">Stop video recording</button>
-    
-            <button id="screenshare" class="Vlt-btn Vlt-btn--link Vlt-btn--secondary tooltip" onclick="screenShare()" style="position:relative">Share your screen</button>
+    <button id="startPublishingScreenId" class="button" onclick="screenShare()" style="position:relative">Share your screen</button>
 
 
+    
+    
 
 <div id="videos" class="Vlt-grid Vlt-grid--narrow">
 	<div class="Vlt-col Vlt-col--A-1of2">
@@ -200,84 +199,46 @@
  <script src="https://static.opentok.com/v2/js/opentok.min.js"></script>
 <script>
 // session ID and token generation
-
-  var SERVER_BASE_URL = '';
-  var archiveID; 
-  var publisher;
   
-fetch(SERVER_BASE_URL + '/room/' + {{request.requester.id}} + '-' +{{request.id}}).then(function(res) {
-// fetch(SERVER_BASE_URL + '/session').then(function(res) {
-  return res.json()
-}).then(function(res) {
-  apiKey = res.apiKey;
-  sessionId = res.sessionId;
-  token = res.token;
- // button.addEventListener('click', initializeSession(), true);
-  //initializeSession()
-}).catch(handleError);
-
-function handleError(error) {
+let sessionId;
+let publisher;
+let archiveId;
+let screenSharing = false;
+let archiving = false;
+let video = true;
+ const SERVER_BASE_URL = 'https://b904a9e3e7fa.ngrok.io';
+  
+  const handleError = (error) => {
   if (error) {
     alert(error.message);
   }
 }
+  
+fetch(SERVER_BASE_URL + '/room/' + {{request.requester.id}} + '-' +{{request.id}}).then(res => {
+  return res.json()
+}).then(res => {
+  apiKey = res.apiKey;
+  sessionId = res.sessionId;
+  token = res.token;
+}).catch(handleError);
+
+
 
 // initialize session + session object creation
-var session;
-var stopBtn;
-var startRec;
-var stopRec;
-var screenSh;
   
-function initializeSession() {
-  videos.style.display = 'flex';
-  
-  stopBtn = document.getElementById('stop-button');
-  stopBtn.style.display = 'inline-block';
-  
-  startRec = document.getElementById('start-arc-button');
-  startRec.style.display = 'inline-block';
-  
-  stopRec = document.getElementById('stop-arc-button');
-  stopRec.style.display = 'inline-block';
-  
-  screenSh = document.getElementById('screenshare');
-  screenSh.style.display = 'inline-block';
-  
+const initializeSession = () => {
+  videos.style.display = 'block';
   session = OT.initSession(apiKey, sessionId);
-
-  // Subscribe to a newly created stream once we're publishing
-  session.on('streamCreated', function(event) {
-    session.subscribe(event.stream, 'subscriber', {
-      insertMode: 'append',
-      width: '100%',
-      height: '100%'
-    }, handleError);
-  });
-  
-  session.on('archiveStarted', function archiveStarted(event) {
-    archiveID = event.id;
-    console.log('Archive started ' + archiveID);
-  });
-     session.on('archiveStopped', function archiveStopped(event) {
-    archiveID = event.id;
-    console.log('Archive stopped ' + archiveID);
-  });
-  session.on('sessionDisconnected', function sessionDisconnected(event) {
-    console.error('You were disconnected from the session.', event.reason);
-  });
-  
 
   // Create a publisher
   publisher = OT.initPublisher('publisher', {
     insertMode: 'append',
     width: '100%',
     height: '100%',
-    // videoSource : 'screen'
   }, handleError);
 
   // Connect to the session
-  session.connect(token, function(error) {
+  session.connect(token, error => {
     // If the connection is successful, initialize a publisher and publish to the session
     if (error) {
       handleError(error);
@@ -285,20 +246,61 @@ function initializeSession() {
       session.publish(publisher, handleError);
     }
   });
+  
+  
+    // Subscribe to a newly created stream once we're publishing
+  session.on('streamCreated', (event) => {
+    session.subscribe(event.stream, 'subscriber', {
+      insertMode: 'append',
+      width: '100%',
+      height: '100%'
+    }, handleError);
+  });
+  
+    session.on('archiveStarted', event => {
+            archiveID = event.id;
+            archiving = true
+            document.getElementById('handleRecording').innerHTML = 'Stop Archive';
+            console.log('ARCHIVE STARTED ' + archiveID);
+  });  
+
+   session.on('archiveStopped',  event => {
+            archiveID = event.id;
+            archiving = false
+            document.getElementById('handleRecording').innerHTML = 'Start Archive';
+            console.log('ARCHIVE STOPED ' + archiveID);
+  });  
+
+  session.on("streamPropertyChanged", event => {
+              console.log(event.newValue)
+             video = event.newValue
+             video ? document.getElementById("startPublishingVideoId").innerHTML = 'Turn Video off' : document.getElementById("startPublishingVideoId").innerHTML = 'Turn Video on';
+            });
+
+  session.on('streamCreated', event => {
+    console.log('stream created' + event.stream)
+    session.subscribe(event.stream, 'subscriber', {
+      insertMode: 'append',
+
+    }, handleError);
+  });
+  
+  
+  
+  
 }
   
-function stopSession() {
-  publisher.publishVideo(false);
-  publisher.publishAudio(false);
-  videos.style.display = 'none';
-  stopBtn.style.display = 'none';
-  startRec.style.display = 'none';
-  stopRec.style.display = 'none';
-  screenSh.style.display = 'none';
+const toggleVideo = () => {
+video ? publisher.publishVideo(false) : publisher.publishVideo(true)
+
 }
 
+  let handleRecording =() => {
+  archiving ? stopArchive() : startArchive();
+  //setRecording( true );
+}
   
-function startArchive() {
+const startArchive = () => {
   //
   console.log('start ')
   fetch(SERVER_BASE_URL +'/archive/start', {
@@ -320,7 +322,7 @@ function startArchive() {
 }
   
   
-function stopArchive() {
+const stopArchive = () => {
   //
   console.log('stop')
   console.log("archiveID" + archiveID);
@@ -339,33 +341,47 @@ function stopArchive() {
   .catch(error => console.log('errror stopping archive', error))
 } 
 
-function screenShare() {
-  session.unpublish(publisher);
-  OT.checkScreenSharingCapability(function(response) {
+let screenShare = () => {
+  if (screenSharing === true){
+         session.unpublish(screenPublisher)
+       }
+       else{
+  OT.checkScreenSharingCapability(response => {
     if(!response.supported || response.extensionRegistered === false) {
       // This browser does not support screen sharing.
-    } else if (response.extensionInstalled === false) {
-      // Prompt to install the extension.
-    } else {
+    } 
+     else {
       // Screen sharing is available. Publish the screen.
-      publisher = OT.initPublisher('publisher',
-        {videoSource: 'screen'},
-        function(error) {
+      screenPublisher = OT.initPublisher('publisher',
+        {videoSource: 'screen' , insertMode: 'after'},
+        error => {
           if (error) {
-            // Look at error.message to see what went wrong.
+            console.log(error)
           } else {
-            session.publish(publisher, function(error) {
+            session.publish(screenPublisher, error => {
               if (error) {
-                // Look error.message to see what went wrong.
+                console.log(error)
               }
+            })
+            .on("streamCreated", event => {  
+              console.log("Publisher started streaming. " + event.stream.videoType)
+                if (event.stream.videoType === 'screen'){
+                  screenSharing = true;
+                  document.getElementById("startPublishingScreenId").innerHTML = 'stop screenShare'
+                }
+              })
+              .on("streamDestroyed", event => {
+               if (event.stream.videoType === 'screen'){screenSharing = false
+              document.getElementById("startPublishingScreenId").innerHTML = 'start screenShare'}
+              console.log("Publisher stopped streaming.");
             });
           }
         }
       );
     }
-  });
-console.log("publishing screen");
-  setPublishing('screen');
+  })
+};
+
 }
   
 </script>
